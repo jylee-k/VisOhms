@@ -98,16 +98,11 @@ def findResistors(img_new, rectCascade):
         #apply another detection to filter false positives
         secondPass = rectCascade.detectMultiScale(roi_gray,1.05,5)
         
-        #x += 15
-        #y += 10
-        #w -= 30
-        #h -= 20
-        
         roi_color = img_new[y:y+h, x:x+w]
         
         if (len(secondPass) != 0):
 
-            #colour quantization
+            #COLOUR QUANTIZATION, ADD IF NECESSARY
             # reshaping the pixels matrix
             #img = roi_color
             #pixel = np.reshape(img,(img.shape[0]*img.shape[1],3)).astype(float)
@@ -140,20 +135,21 @@ def findBands(resistorInfo, DEBUG):
     resPos = resistorInfo[1]                               #resistorInfo[1] directs to (x,y,w,h), position of the resistor in the image
     #apply bilateral filter and convert to hsv
     
-    
-    #pre_bil = cv2.bilateralFilter(resImg,5,75,75)
-    pre_bil = cv2.medianBlur(resImg,3)
-    pre_bil = cv2.GaussianBlur(pre_bil, (3,3), 0)
+    #Filters
+    medianBlur = cv2.medianBlur(resImg,3)
+    gaussianBlur = cv2.GaussianBlur(medianBlur, (3,3), 0)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
-    pre_bil = cv2.morphologyEx(pre_bil, cv2.MORPH_CLOSE, kernel)
+    pre_bil = cv2.morphologyEx(gaussianBlur, cv2.MORPH_OPEN, kernel)
     
-    cv2.imshow('pre_bil', pre_bil)
+    # Display final image with filters
+    cv2.imshow('Processed image', pre_bil)
+
+    #Convert image from BGR to HSV 
     hsv = cv2.cvtColor(pre_bil, cv2.COLOR_BGR2HSV)
     
     
     #edge threshold filters out background and resistor body
     thresh = cv2.adaptiveThreshold(cv2.cvtColor(pre_bil, cv2.COLOR_BGR2GRAY),255,cv2.ADAPTIVE_THRESH_MEAN_C,cv2.THRESH_BINARY,59,5)
-    #cv2.imshow('thresh1', thresh)
     thresh = cv2.bitwise_not(thresh)
             
     bandsPos = []
@@ -189,8 +185,8 @@ def findBands(resistorInfo, DEBUG):
             cv2.imshow('thresh', thresh)
             
 
-    cv2.imshow('Contour Display', pre_bil)#shows the most recent resistor checked.
-    cv2.imshow('thresh', thresh)
+    cv2.imshow('Contour Display', pre_bil) #shows the most recent resistor checked.
+    cv2.imshow('thresh', thresh) #shows the threshold
     
     #sort by 1st element of each tuple and return
     return sorted(bandsPos, key=lambda tup: tup[0])
@@ -228,8 +224,6 @@ while True:
                 sortedBands = findBands(resClose[i],DEBUG)
                 final = printResult(sortedBands, img_new, resClose[i][1])
             print("Processed!")
-            cv2.imwrite(filename="normal.jpg", img=resClose[0][0])
-            cv2.imwrite(filename="detectedresistors.jpg", img=final)
         
     
         cv2.imshow("detected resistors", final)
