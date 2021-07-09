@@ -17,23 +17,23 @@ DEBUG = False
 
 
 
-COLOUR_BOUNDS = [
-                [(0, 0, 0)      , (179, 255, 60)  , "BLACK"  , 0 , (0,0,0)       ],    
+COLOUR_BOUNDS = [[(0, 0, 0)      , (179, 255, 60)  , "BLACK"  , 0 , (0,0,0)       ],  
                 [(5, 90, 10)    , (20, 250, 100)  , "BROWN"  , 1 , (0,51,102)    ],    
-                [(0, 30, 80)    , (5, 255, 200)  , "RED"    , 2 , (0,0,255)     ],
-                [(6, 70, 70)   , (25, 255, 200)  , "ORANGE" , 3 , (0,128,255)   ], 
+                [(0, 100, 100)    , (10, 255, 200)  , "RED"    , 2 , (0,0,255)     ],
+                [(11, 70, 70)   , (25, 255, 200)  , "ORANGE" , 3 , (0,128,255)   ], 
                 [(30, 170, 100) , (40, 250, 255)  , "YELLOW" , 4 , (0,255,255)   ],
-                [(35, 20, 110)  , (60, 250, 250)   , "GREEN"  , 5 , (0,255,0)     ],  
-                [(65, 0, 85)    , (115, 200, 200)  , "BLUE"   , 6 , (255,0,0)     ],  
-                [(120, 40, 100) , (140, 250, 220) , "PURPLE" , 7 , (255,0,127)   ], 
+                [(40, 40, 40)  , (70, 255, 255)   , "GREEN"  , 5 , (0,255,0)     ],  #DONE
+                [(65, 50, 50)    , (115, 255, 200)  , "BLUE"   , 6 , (255,0,0)     ], #DONE 
+                [(120, 70, 100) , (140, 250, 220) , "PURPLE" , 7 , (255,0,127)   ], 
                 [(0, 0, 50)     , (179, 50, 80)   , "GRAY"   , 8 , (128,128,128) ],      
                 [(0, 0, 90)     , (179, 15, 250)  , "WHITE"  , 9 , (255,255,255) ],
+                
                 ]
 
-RED_TOP_LOWER = (170, 30, 80)
+RED_TOP_LOWER = (160, 100, 100)
 RED_TOP_UPPER = (179, 255, 200)
 
-MIN_AREA = 8000
+MIN_AREA = 700
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 
 #required for trackbars
@@ -78,7 +78,7 @@ def printResult(sortedBands, savedimg, resPos):
         intVal = int(strVal)
         intVal *= 10**sortedBands[-1][3]
         cv2.rectangle(savedimg,(x,y),(x+w,y+h),(0,255,0),2)
-        cv2.putText(savedimg,str(intVal) + " OHMS",(x+w+10,y), FONT, 1,(0,0,0),2,cv2.LINE_AA)
+        cv2.putText(savedimg,str(intVal) + " OHMS",(x+w+10,y), FONT, 1,(255,255,255),2,cv2.LINE_AA)
         return savedimg
     #draw a red rectangle indicating an error reading the bands
     cv2.rectangle(savedimg,(x,y),(x+w,y+h),(0,0,255),2)
@@ -98,10 +98,10 @@ def findResistors(img_new, rectCascade):
         #apply another detection to filter false positives
         secondPass = rectCascade.detectMultiScale(roi_gray,1.05,5)
         
-        x += 15
-        y += 10
-        w -= 30
-        h -= 20
+        #x += 15
+        #y += 10
+        #w -= 30
+        #h -= 20
         
         roi_color = img_new[y:y+h, x:x+w]
         
@@ -109,19 +109,19 @@ def findResistors(img_new, rectCascade):
 
             #colour quantization
             # reshaping the pixels matrix
-            img = roi_color
-            pixel = np.reshape(img,(img.shape[0]*img.shape[1],3)).astype(float)
+            #img = roi_color
+            #pixel = np.reshape(img,(img.shape[0]*img.shape[1],3)).astype(float)
 
             # performing the clustering
-            centroids,_ = kmeans(pixel,6) # six colors will be found
+            #centroids,_ = kmeans(pixel,10) # ten colors will be found
             # quantization
-            qnt,_ = vq(pixel,centroids)
+            #qnt,_ = vq(pixel,centroids)
 
             # reshaping the result of the quantization
-            centers_idx = np.reshape(qnt,(img.shape[0],img.shape[1]))
-            clustered = np.uint8(centroids[centers_idx])
+            #centers_idx = np.reshape(qnt,(img.shape[0],img.shape[1]))
+            #clustered = np.uint8(centroids[centers_idx])
 
-            resClose.append((np.copy(clustered),(x,y,w,h)))
+            resClose.append((np.copy(roi_color),(x,y,w,h)))
 
     return resClose
 
@@ -139,10 +139,21 @@ def findBands(resistorInfo, DEBUG):
     resImg = cv2.resize(resistorInfo[0], (400, 200))       #resistorInfo[0] directs to the specified image of the resistor
     resPos = resistorInfo[1]                               #resistorInfo[1] directs to (x,y,w,h), position of the resistor in the image
     #apply bilateral filter and convert to hsv
-    pre_bil = cv2.bilateralFilter(resImg,5,80,80)
+    
+    
+    #pre_bil = cv2.bilateralFilter(resImg,5,75,75)
+    pre_bil = cv2.medianBlur(resImg,3)
+    pre_bil = cv2.GaussianBlur(pre_bil, (3,3), 0)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
+    pre_bil = cv2.morphologyEx(pre_bil, cv2.MORPH_CLOSE, kernel)
+    
+    cv2.imshow('pre_bil', pre_bil)
     hsv = cv2.cvtColor(pre_bil, cv2.COLOR_BGR2HSV)
+    
+    
     #edge threshold filters out background and resistor body
     thresh = cv2.adaptiveThreshold(cv2.cvtColor(pre_bil, cv2.COLOR_BGR2GRAY),255,cv2.ADAPTIVE_THRESH_MEAN_C,cv2.THRESH_BINARY,59,5)
+    #cv2.imshow('thresh1', thresh)
     thresh = cv2.bitwise_not(thresh)
             
     bandsPos = []
@@ -179,6 +190,7 @@ def findBands(resistorInfo, DEBUG):
             
 
     cv2.imshow('Contour Display', pre_bil)#shows the most recent resistor checked.
+    cv2.imshow('thresh', thresh)
     
     #sort by 1st element of each tuple and return
     return sorted(bandsPos, key=lambda tup: tup[0])
@@ -198,7 +210,7 @@ while True:
         break
 
 
-    elif cv2.waitKey(1) & 0xFF == ord('s'):  # Captures a frame & process to detect resistors
+    elif cv2.waitKey(50) & 0xFF == ord('s'):  # Captures a frame & process to detect resistors
         
         cv2.imshow("Captured", frame)
         print('Captured!')
@@ -216,6 +228,8 @@ while True:
                 sortedBands = findBands(resClose[i],DEBUG)
                 final = printResult(sortedBands, img_new, resClose[i][1])
             print("Processed!")
+            cv2.imwrite(filename="normal.jpg", img=resClose[0][0])
+            cv2.imwrite(filename="detectedresistors.jpg", img=final)
         
     
         cv2.imshow("detected resistors", final)
