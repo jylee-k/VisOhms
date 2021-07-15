@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import os
 
 
 COLOUR_BOUNDS = [[(0, 0, 0)      , (179, 255, 60)  , "BLACK"  , 0 , (0,0,0)       ],  

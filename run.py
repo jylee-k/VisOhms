@@ -1,8 +1,3 @@
-# AUTOSTART
-# sudo nano /home/pi/.config/lxsession/LXDE-pi/autostart
-# edit launch.sh if necessary
-
-
 import cv2
 import numpy as np
 import os
@@ -22,11 +17,14 @@ def init(DEBUG):
 
 cap,haarCascade = init(DEBUG)
 
+width = cap.get(3)
+height = cap.get(4)
+
 while True:
     ret, frame = cap.read()
 
+
     if cv2.waitKey(1) & 0xFF == ord('q'):  #camera off
-        
         print("Camera off")
         cap.release()
         cv2.destroyAllWindows()
@@ -43,9 +41,8 @@ while True:
         
         if len(resClose) == 0: #no resistors detected, outputs the original image
             copy = np.copy(frame)
-            cv2.putText(copy, "No resistors in the frame", (400, 700), FONT, 1, (255,255,255), 2)
+            cv2.putText(copy, "No resistors in the frame", (int(np.round(width/3)), int(height-20)), FONT, 1, (255,255,255), 2, cv2.LINE_AA)
             cv2.imshow("Image", copy)
-            print("No resistors in the frame")
             
         else:
             for i in range(len(resClose)):
