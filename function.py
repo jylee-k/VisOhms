@@ -1,21 +1,30 @@
 import cv2
 import numpy as np
+import pandas as pd
 
 
-COLOUR_BOUNDS = [[(0, 0, 0)      , (179, 255, 60)  , "BLACK"  , 0 , (0,0,0)       ],  
-                [(5, 90, 10)    , (20, 250, 100)  , "BROWN"  , 1 , (0,51,102)    ],    
-                [(0, 100, 100)    , (10, 255, 200)  , "RED"    , 2 , (0,0,255)     ],
-                [(11, 70, 70)   , (25, 255, 200)  , "ORANGE" , 3 , (0,128,255)   ], 
-                [(30, 170, 100) , (40, 250, 255)  , "YELLOW" , 4 , (0,255,255)   ],
+COLOUR_BOUNDS = [[(21, 0, 0)      , (179, 255, 100)  , "BLACK"  , 0 , (0,0,0)       ],  #DONE
+                [(0, 35, 10)    , (21, 255, 150)  , "BROWN"  , 1 , (0,51,102)    ],    
+                [(0, 150, 100)    , (6, 255, 255)  , "RED"    , 2 , (0,0,255)     ], #DONE
+                [(5, 121, 196)   , (20, 255, 255)  , "ORANGE" , 3 , (0,128,255)   ], 
+                [(20, 190, 20) , (30, 250, 255)  , "YELLOW" , 4 , (0,255,255)   ],
                 [(40, 40, 40)  , (70, 255, 255)   , "GREEN"  , 5 , (0,255,0)     ],  #DONE
-                [(65, 50, 50)    , (115, 255, 200)  , "BLUE"   , 6 , (255,0,0)     ], #DONE 
-                [(120, 70, 100) , (140, 250, 220) , "PURPLE" , 7 , (255,0,127)   ], 
+                [(98, 109, 20)    , (112, 255, 255)  , "BLUE"   , 6 , (255,0,0)     ], #DONE 
+                [(120, 48, 93) , (164, 255, 255) , "PURPLE" , 7 , (255,0,127)   ], #DONE
                 [(0, 0, 50)     , (179, 50, 80)   , "GRAY"   , 8 , (128,128,128) ],      
                 [(0, 0, 90)     , (179, 15, 250)  , "WHITE"  , 9 , (255,255,255) ],
                 ]
 
-RED_TOP_LOWER = (160, 100, 100)
-RED_TOP_UPPER = (179, 255, 200)
+RED_TOP_LOWER = (165, 150, 100)
+RED_TOP_UPPER = (179, 255, 255)
+BROWN_TOP_LOWER = (167, 35, 10)
+BROWN_TOP_UPPER = (179, 255, 150)
+#BLACK_TOP_LOWER = (165, 0, 0)
+#BLACK_TOP_UPPER = (179, 255, 100)
+
+#reading csv file with pandas and giving names to each column
+#index = ["exact_colour", "exact_colour_name", "hex", "R", "G", "B", "res_colour"]
+#csv = pd.read_csv('colors.csv', names=index, header=None)
 
 MIN_AREA = 700
 
@@ -86,7 +95,7 @@ def findBands(resistorInfo, DEBUG):
     final = cv2.morphologyEx(gaussianBlur, cv2.MORPH_OPEN, kernel)
     
     # Display final image with filters
-    cv2.imshow('Processed image', final)
+    #cv2.imshow('Processed image', final)
 
     #Convert image from BGR to HSV 
     hsv = cv2.cvtColor(final, cv2.COLOR_BGR2HSV)
@@ -106,6 +115,12 @@ def findBands(resistorInfo, DEBUG):
         if (clr[2] == "RED"): #combining the 2 RED ranges in hsv
             redMask2 = cv2.inRange(hsv, RED_TOP_LOWER, RED_TOP_UPPER)
             mask = cv2.bitwise_or(redMask2,mask,mask)
+        if (clr[2] == "BROWN"): #combining the 2 BROWN ranges in hsv
+            brownMask2 = cv2.inRange(hsv, BROWN_TOP_LOWER, BROWN_TOP_UPPER)
+            mask = cv2.bitwise_or(brownMask2,mask,mask)
+        #if (clr[2] == "BLACK"):
+            #blackMask2 = cv2.inRange(hsv, BLACK_TOP_LOWER, BLACK_TOP_UPPER)
+            #mask = cv2.bitwise_or(blackMask2,mask,mask)
              
         mask = cv2.bitwise_and(mask,thresh,mask= mask)
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -122,8 +137,8 @@ def findBands(resistorInfo, DEBUG):
         cv2.drawContours(final, contours, -1, clr[-1], 3)
             
 
-    cv2.imshow('Contour Display', final) #shows the most recent resistor checked.
-    cv2.imshow('thresh', thresh) #shows the threshold
+    #cv2.imshow('Contour Display', final) #shows the most recent resistor checked.
+    #cv2.imshow('thresh', thresh) #shows the threshold
     
     #sort by 1st element of each tuple and return
     return sorted(bandsPos, key=lambda tup: tup[0])
